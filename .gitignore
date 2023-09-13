@@ -111,3 +111,4 @@ venv.bak/
 # System files
 *.DS_Store
 desktop.ini
+.vscode/settings.json
