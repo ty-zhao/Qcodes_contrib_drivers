@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qcodes_contrib_drivers.drivers.RaytheonBBN.APS2 &mdash; qcodes_contrib_drivers 0.14.0.dev508+main.g5677223 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/documentation_options.js?v=f47d49fe"></script>
+        <script src="../../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            qcodes_contrib_drivers
+          </a>
+              <div class="version">
+                0.14.0.dev508+main.g5677223
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../examples/index.html">Examples of how to use drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/generated/qcodes_contrib_drivers.drivers.html">qcodes_contrib_drivers.drivers package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">qcodes_contrib_drivers</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qcodes_contrib_drivers.drivers.RaytheonBBN.APS2</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qcodes_contrib_drivers.drivers.RaytheonBBN.APS2</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">.dll_wrapper</span> <span class="kn">import</span> <span class="n">APS2DLLWrapper</span><span class="p">,</span> <span class="n">AttributeWrapper</span>
+<span class="kn">from</span> <span class="nn">qcodes</span> <span class="kn">import</span> <span class="n">Instrument</span><span class="p">,</span> <span class="n">InstrumentChannel</span>
+<span class="kn">from</span> <span class="nn">qcodes.instrument</span> <span class="kn">import</span> <span class="n">InstrumentModule</span>
+<span class="kn">from</span> <span class="nn">qcodes.validators</span> <span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">Strings</span>
+<span class="kn">from</span> <span class="nn">qcodes.parameters</span> <span class="kn">import</span> <span class="n">ManualParameter</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="n">c_uint32</span><span class="p">,</span> <span class="n">c_uint64</span><span class="p">,</span> <span class="n">c_uint8</span><span class="p">,</span> <span class="n">c_int16</span><span class="p">,</span> <span class="n">c_int</span><span class="p">,</span> <span class="n">c_float</span><span class="p">,</span> <span class="n">c_double</span><span class="p">,</span> <span class="n">c_uint</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">,</span> <span class="n">addressof</span><span class="p">,</span> <span class="n">create_string_buffer</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Literal</span>
+
+<div class="viewcode-block" id="c_str">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.c_str">[docs]</a>
+<span class="k">def</span> <span class="nf">c_str</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span> <span class="k">return</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;ascii&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1"># gettable attributes</span>
+<span class="n">UPTIME</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;uptime&quot;</span><span class="p">,</span> <span class="n">c_double</span><span class="p">)</span>
+<span class="n">FPGA_TEMPERATURE</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;fpga_temperature&quot;</span><span class="p">,</span> <span class="n">c_float</span><span class="p">)</span>
+<span class="n">RUNSTATE</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;runState&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)</span>
+<span class="n">DHCP_ENABLE</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;dhcp_enable&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)</span>
+<span class="n">IP_ADDRESS</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;ip_addr&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">)</span>
+<span class="n">SAMPLERATE</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;sampleRate&quot;</span><span class="p">,</span> <span class="n">c_uint</span><span class="p">)</span>
+<span class="n">TRIGGER_SOURCE</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;trigger_source&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)</span>
+<span class="n">TRIGGER_INTERVAL</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;trigger_interval&quot;</span><span class="p">,</span> <span class="n">c_double</span><span class="p">)</span>
+<span class="n">WAVEFORM_FREQUENCY</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;waveform_frequency&quot;</span><span class="p">,</span> <span class="n">c_float</span><span class="p">)</span>
+<span class="n">MIXER_AMPLITUDE_IMBALANCE</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;mixer_amplitude_imbalance&quot;</span><span class="p">,</span> <span class="n">c_float</span><span class="p">)</span>
+<span class="n">MIXER_PHASE_SKEW</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;mixer_phase_skew&quot;</span><span class="p">,</span> <span class="n">c_float</span><span class="p">)</span>
+
+<span class="c1"># gettable channel attributes</span>
+<span class="n">CHANNEL_OFFSET</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;channel_offset&quot;</span><span class="p">,</span> <span class="n">c_float</span><span class="p">)</span>
+<span class="n">CHANNEL_SCALE</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;channel_scale&quot;</span><span class="p">,</span> <span class="n">c_float</span><span class="p">)</span>
+<span class="n">CHANNEL_ENABLED</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;channel_enabled&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)</span>
+<span class="n">CHANNEL_DELAY</span> <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="s2">&quot;channel_delay&quot;</span><span class="p">,</span> <span class="n">c_uint</span><span class="p">)</span>
+
+<div class="viewcode-block" id="APS2Rack">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Rack">[docs]</a>
+<span class="k">class</span> <span class="nc">APS2Rack</span><span class="p">(</span><span class="n">Instrument</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">dll_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span> <span class="o">=</span> <span class="n">APS2DLLWrapper</span><span class="p">(</span><span class="n">dll_path</span><span class="o">=</span><span class="n">dll_path</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enumerate</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">APS2Slice</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;APS2_</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">enumerate</span><span class="p">()[</span><span class="n">idx</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_submodule</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;APS2_</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
+
+<div class="viewcode-block" id="APS2Rack.get_num_devices">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Rack.get_num_devices">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_num_devices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">num</span> <span class="o">=</span> <span class="n">c_uint</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_get_num_devices</span><span class="p">(</span><span class="n">num</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">num</span><span class="o">.</span><span class="n">value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="APS2Rack.get_device_IPs">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Rack.get_device_IPs">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_device_IPs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">num_devices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_num_devices</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_char_p</span> <span class="o">*</span> <span class="n">num_devices</span><span class="p">)(</span><span class="n">addressof</span><span class="p">(</span><span class="n">create_string_buffer</span><span class="p">(</span><span class="mi">16</span><span class="p">)))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_get_device_IPs</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="APS2Rack.enumerate">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Rack.enumerate">[docs]</a>
+    <span class="k">def</span> <span class="nf">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">device_IPs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_device_IPs</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">device_IPs</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">device_IPs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">APS2_list</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">APS2_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">device_IPs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">APS2_list</span></div>
+
+
+<div class="viewcode-block" id="APS2Rack.get_idn">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Rack.get_idn">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_idn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">IDN</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;vendor&#39;</span><span class="p">:</span> <span class="s1">&#39;Raytheon BBN&#39;</span><span class="p">,</span> <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="s1">&#39;APS2 Rack&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;serial&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;firmware&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">return</span> <span class="n">IDN</span></div>
+</div>
+
+
+<div class="viewcode-block" id="APS2Channel">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Channel">[docs]</a>
+<span class="k">class</span> <span class="nc">APS2Channel</span><span class="p">(</span><span class="n">InstrumentChannel</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">InstrumentModule</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">channel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="o">.</span><span class="n">_wrapper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">channel</span> <span class="o">=</span> <span class="n">channel</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;channel_offset&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">CHANNEL_OFFSET</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">CHANNEL_OFFSET</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;channel_scale&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">CHANNEL_SCALE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">CHANNEL_SCALE</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;channel_enabled&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">CHANNEL_ENABLED</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">CHANNEL_ENABLED</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;channel_delay&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">CHANNEL_DELAY</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">CHANNEL_DELAY</span><span class="p">))</span>
+
+<div class="viewcode-block" id="APS2Channel.set_waveform_float">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Channel.set_waveform_float">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_waveform_float</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+        <span class="n">num_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">converted_data</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_float</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)(</span><span class="o">*</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_set_waveform_float</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="o">.</span><span class="n">address</span><span class="p">),</span>
+                                          <span class="n">c_int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">),</span>
+                                          <span class="n">converted_data</span><span class="p">,</span>
+                                          <span class="n">c_int</span><span class="p">(</span><span class="n">num_points</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="APS2Channel.set_waveform_int">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Channel.set_waveform_int">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_waveform_int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+        <span class="n">num_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">converted_data</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_int16</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)(</span><span class="o">*</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_set_waveform_int</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="o">.</span><span class="n">address</span><span class="p">),</span>
+                                        <span class="n">c_int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">),</span>
+                                        <span class="n">converted_data</span><span class="p">,</span>
+                                        <span class="n">c_int</span><span class="p">(</span><span class="n">num_points</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="APS2Channel.set_markers">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Channel.set_markers">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_markers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+        <span class="n">num_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">converted_data</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_uint8</span> <span class="o">*</span> <span class="n">num_points</span><span class="p">)(</span><span class="o">*</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_set_markers</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="o">.</span><span class="n">address</span><span class="p">),</span>
+                                   <span class="n">c_int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">),</span>
+                                   <span class="n">converted_data</span><span class="p">,</span>
+                                   <span class="n">c_int</span><span class="p">(</span><span class="n">num_points</span><span class="p">))</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_get_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="n">AttributeWrapper</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="o">.</span><span class="n">address</span><span class="p">,</span>
+                                           <span class="n">attr</span><span class="p">,</span>
+                                           <span class="n">channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="n">AttributeWrapper</span><span class="p">,</span> <span class="n">set_val</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="o">.</span><span class="n">address</span><span class="p">,</span>
+                                           <span class="n">attr</span><span class="p">,</span>
+                                           <span class="n">set_val</span><span class="p">,</span>
+                                           <span class="n">channel</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">channel</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice">[docs]</a>
+<span class="k">class</span> <span class="nc">APS2Slice</span><span class="p">(</span><span class="n">InstrumentModule</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">Instrument</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="o">.</span><span class="n">_wrapper</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">address</span> <span class="o">=</span> <span class="n">address</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sequence_file</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">chan</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]:</span>
+            <span class="n">channel</span> <span class="o">=</span> <span class="n">APS2Channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Channel_</span><span class="si">{</span><span class="n">chan</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="n">chan</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_submodule</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Channel_</span><span class="si">{</span><span class="n">chan</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">channel</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;up_time&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">UPTIME</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;ip_address&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">IP_ADDRESS</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">IP_ADDRESS</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;DHCP_enable&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">DHCP_ENABLE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">DHCP_ENABLE</span><span class="p">),</span>
+                           <span class="n">val_mapping</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;disabled&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                                        <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;fpga_temperature&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">FPGA_TEMPERATURE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;sample_rate&quot;</span><span class="p">,</span>
+                           <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;MHz&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">SAMPLERATE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">SAMPLERATE</span><span class="p">),</span>
+                           <span class="n">vals</span><span class="o">=</span><span class="n">Enum</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="mi">600</span><span class="p">,</span> <span class="mi">1200</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mixer_amplitude_imbalance&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">MIXER_AMPLITUDE_IMBALANCE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">MIXER_AMPLITUDE_IMBALANCE</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;mixer_phase_skew&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">MIXER_PHASE_SKEW</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">MIXER_PHASE_SKEW</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;trigger_source&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">TRIGGER_SOURCE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">TRIGGER_SOURCE</span><span class="p">),</span>
+                           <span class="n">val_mapping</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;external&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                                        <span class="s2">&quot;internal&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                                        <span class="s2">&quot;software&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+                                        <span class="s2">&quot;system&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;trigger_interval&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">TRIGGER_INTERVAL</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">TRIGGER_INTERVAL</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;waveform_frequency&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">WAVEFORM_FREQUENCY</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_set_attribute</span><span class="p">,</span>
+                                           <span class="n">WAVEFORM_FREQUENCY</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;sequence_file_location&quot;</span><span class="p">,</span>
+                           <span class="n">parameter_class</span><span class="o">=</span><span class="n">ManualParameter</span><span class="p">,</span>
+                           <span class="n">vals</span><span class="o">=</span><span class="n">Strings</span><span class="p">(),</span>
+                           <span class="n">initial_value</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;run_state&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_attribute</span><span class="p">,</span>
+                                           <span class="n">RUNSTATE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                           <span class="n">val_mapping</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;stopped&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                                        <span class="s2">&quot;playing&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+        
+        <span class="c1"># self.add_parameter(name=&quot;sequence_file_location&quot;,</span>
+        <span class="c1">#                    parameter_class=ManualParameter,</span>
+        <span class="c1">#                    vals=Strings(),</span>
+        <span class="c1">#                    initial_value=&quot;&quot;)</span>
+
+<div class="viewcode-block" id="APS2Slice.write_sequence">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.write_sequence">[docs]</a>
+    <span class="k">def</span> <span class="nf">write_sequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+        <span class="n">num_words</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">converted_data</span> <span class="o">=</span> <span class="p">(</span><span class="n">c_uint64</span> <span class="o">*</span> <span class="n">num_words</span><span class="p">)(</span><span class="o">*</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_write_sequence</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">),</span>
+                                      <span class="n">converted_data</span><span class="p">,</span>
+                                      <span class="n">c_uint32</span><span class="p">(</span><span class="n">num_words</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.set_run_mode">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.set_run_mode">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_run_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;run_sequence&quot;</span><span class="p">,</span> <span class="s2">&quot;trig_waveform&quot;</span><span class="p">,</span> <span class="s2">&quot;cw_waveform&quot;</span><span class="p">]):</span>
+        <span class="n">mode_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;run_sequence&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;trig_waveform&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;cw_waveform&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_set_run_mode</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">),</span>
+                                    <span class="n">c_int</span><span class="p">(</span><span class="n">mode_dict</span><span class="p">[</span><span class="n">mode</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.load_sequence_file">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.load_sequence_file">[docs]</a>
+    <span class="k">def</span> <span class="nf">load_sequence_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_load_sequence_file</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">),</span>
+                                          <span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sequence_file_location</span><span class="p">()))</span></div>
+
+        <span class="c1"># self.sequence_file = sequence_file</span>
+
+<div class="viewcode-block" id="APS2Slice.clear_channel_data">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.clear_channel_data">[docs]</a>
+    <span class="k">def</span> <span class="nf">clear_channel_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_clear_channel_data</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.reset">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.reset">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">reset_mode</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">reset_mode</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_reset</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">),</span> <span class="n">c_int</span><span class="p">(</span><span class="n">reset_mode</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;reset_mode should be among 0 (&#39;RECONFIG_EPROM_USER&#39;), 1 (&#39;RECONFIG_EPROM_BASE&#39;) or 2 (&#39;RESET_TCP&#39;)&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.initialize">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.initialize">[docs]</a>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_init</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">),</span> <span class="n">c_int</span><span class="p">(</span><span class="n">force</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.trigger">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.trigger">[docs]</a>
+    <span class="k">def</span> <span class="nf">trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_trigger</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.connect">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.connect">[docs]</a>
+    <span class="k">def</span> <span class="nf">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_connect_APS</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.disconnect">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.disconnect">[docs]</a>
+    <span class="k">def</span> <span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_diconnect_APS</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.run">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.run">[docs]</a>
+    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_run</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.stop">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.stop">[docs]</a>
+    <span class="k">def</span> <span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_stop</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.get_mixer_correction_matrix">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.get_mixer_correction_matrix">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_mixer_correction_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_get_mixer_correction_matrix</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">),</span>
+                                                  <span class="n">matrix</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">matrix</span></div>
+
+
+<div class="viewcode-block" id="APS2Slice.set_mixer_correction_matrix">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.APS2.APS2Slice.set_mixer_correction_matrix">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_mixer_correction_matrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">matrix</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">_set_mixer_correction_matrix</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">),</span>
+                                                  <span class="n">matrix</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_get_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="n">AttributeWrapper</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="n">AttributeWrapper</span><span class="p">,</span> <span class="n">set_val</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wrapper</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">address</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">set_val</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, QCoDeS Users.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

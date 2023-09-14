@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO &mdash; qcodes_contrib_drivers 0.14.0.dev508+main.g5677223 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/documentation_options.js?v=f47d49fe"></script>
+        <script src="../../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            qcodes_contrib_drivers
+          </a>
+              <div class="version">
+                0.14.0.dev508+main.g5677223
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../examples/index.html">Examples of how to use drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/generated/qcodes_contrib_drivers.drivers.html">qcodes_contrib_drivers.drivers package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">qcodes_contrib_drivers</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: UTF-8 -*-</span>
+<span class="c1"># Tongyu Zhao &lt;ty.zhao.work@gmail.com&gt; summer 2022</span>
+<span class="kn">import</span> <span class="nn">ctypes</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="n">byref</span>
+
+<span class="kn">from</span> <span class="nn">typing_extensions</span> <span class="kn">import</span> <span class="n">Literal</span>
+<span class="kn">from</span> <span class="nn">qcodes</span> <span class="kn">import</span> <span class="n">Instrument</span>
+
+<span class="kn">from</span> <span class="nn">.dll_wrapper</span> <span class="kn">import</span> <span class="n">AttributeWrapper</span><span class="p">,</span> <span class="n">NamedArgType</span><span class="p">,</span> <span class="n">NIHSDIODLLWrapper</span>
+<span class="kn">from</span> <span class="nn">.visa_types</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ViBoolean</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">,</span> <span class="n">ViString</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">,</span> <span class="n">ViAttr</span><span class="p">,</span> <span class="n">ViReal64</span><span class="p">,</span> <span class="n">VI_NULL</span><span class="p">,</span> <span class="n">ViUInt32</span>
+<span class="p">)</span>
+
+<div class="viewcode-block" id="c_str">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.c_str">[docs]</a>
+<span class="k">def</span> <span class="nf">c_str</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span> <span class="k">return</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;ascii&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1"># attribute ID&#39;s used for querying attributes</span>
+<span class="n">NIHSDIO_ATTR_DYNAMIC_CHANNELS</span>             <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150002</span><span class="p">),</span> <span class="n">ViString</span><span class="p">)</span>
+<span class="n">NIHSDIO_ATTR_STATIC_CHANNELS</span>              <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150003</span><span class="p">),</span> <span class="n">ViString</span><span class="p">)</span>
+<span class="n">NIHSDIO_ATTR_SERIAL_NUMBER</span>                <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150096</span><span class="p">),</span> <span class="n">ViString</span><span class="p">)</span>
+
+<span class="n">NIHSDIO_ATTR_REF_CLOCK_SOURCE</span>             <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150011</span><span class="p">),</span> <span class="n">ViString</span><span class="p">)</span>
+<span class="n">NIHSDIO_ATTR_REF_CLOCK_RATE</span>               <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150012</span><span class="p">),</span> <span class="n">ViReal64</span><span class="p">)</span>
+<span class="n">NIHSDIO_ATTR_REF_CLOCK_IMPEDANCE</span>          <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150058</span><span class="p">),</span> <span class="n">ViReal64</span><span class="p">)</span>
+
+<span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_SOURCE</span>          <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150013</span><span class="p">),</span> <span class="n">ViString</span><span class="p">)</span>
+<span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_RATE</span>            <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150014</span><span class="p">),</span> <span class="n">ViReal64</span><span class="p">)</span>
+<span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_IMPEDANCE</span>       <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150060</span><span class="p">),</span> <span class="n">ViReal64</span><span class="p">)</span>
+
+<span class="n">NIHSDIO_ATTR_REPEAT_MODE</span>                  <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150026</span><span class="p">),</span> <span class="n">ViInt32</span><span class="p">)</span>
+<span class="n">NIHSDIO_ATTR_REPEAT_COUNT</span>                 <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150071</span><span class="p">),</span> <span class="n">ViInt32</span><span class="p">)</span>
+
+<span class="n">NIHSDIO_ATTR_DATA_POSITION</span>                <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150056</span><span class="p">),</span> <span class="n">ViInt32</span><span class="p">)</span>
+<span class="n">NIHSDIO_ATTR_DATA_WIDTH</span>                   <span class="o">=</span> <span class="n">AttributeWrapper</span><span class="p">(</span><span class="n">ViAttr</span><span class="p">(</span><span class="mi">1150108</span><span class="p">),</span> <span class="n">ViInt32</span><span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">REF_CLK_SRC_MAP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;None&quot;</span><span class="p">:</span> <span class="s2">&quot;None&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;clk_in&quot;</span><span class="p">:</span> <span class="s2">&quot;ClkIn&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pxi_clk&quot;</span><span class="p">:</span> <span class="s2">&quot;PXI_CLK&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;rtsi7&quot;</span><span class="p">:</span> <span class="s2">&quot;RTSI7&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pxie_dstara&quot;</span><span class="p">:</span> <span class="s2">&quot;PXIe_DStarA&quot;</span>
+<span class="p">}</span>
+
+<span class="n">SAMPLE_CLK_SRC_MAP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;on_board_clock&quot;</span><span class="p">:</span> <span class="s2">&quot;OnBoardClock&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;clk_in&quot;</span><span class="p">:</span> <span class="s2">&quot;ClkIn&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pxi_star&quot;</span><span class="p">:</span> <span class="s2">&quot;PXI_STAR&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;strobe&quot;</span><span class="p">:</span> <span class="s2">&quot;STROBE&quot;</span>
+<span class="p">}</span>
+
+<span class="n">LOGIC_FAMILY</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;1.2V&quot;</span><span class="p">:</span> <span class="mi">81</span><span class="p">,</span>
+    <span class="s2">&quot;1.5V&quot;</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span>
+    <span class="s2">&quot;1.8V&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="s2">&quot;2.5V&quot;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>
+    <span class="s2">&quot;3.3V&quot;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>
+    <span class="s2">&quot;5.0V&quot;</span><span class="p">:</span> <span class="mi">5</span>
+<span class="p">}</span>
+
+<span class="n">SIGNAL</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;sample_clock&quot;</span><span class="p">:</span> <span class="mi">52</span><span class="p">,</span>
+    <span class="s2">&quot;reference_clock&quot;</span><span class="p">:</span> <span class="mi">51</span><span class="p">,</span>
+    <span class="s2">&quot;start_trigger&quot;</span><span class="p">:</span> <span class="mi">53</span><span class="p">,</span>
+    <span class="s2">&quot;reference_trigger&quot;</span><span class="p">:</span> <span class="mi">54</span><span class="p">,</span>
+    <span class="s2">&quot;data_active_event&quot;</span><span class="p">:</span> <span class="mi">55</span><span class="p">,</span>
+    <span class="s2">&quot;ready_for_start_event&quot;</span><span class="p">:</span> <span class="mi">56</span><span class="p">,</span>
+    <span class="s2">&quot;ready_for_advance_event&quot;</span><span class="p">:</span> <span class="mi">66</span><span class="p">,</span>
+    <span class="s2">&quot;end_of_record_event&quot;</span><span class="p">:</span> <span class="mi">68</span><span class="p">,</span>
+    <span class="s2">&quot;pause_trigger&quot;</span><span class="p">:</span> <span class="mi">57</span><span class="p">,</span>
+    <span class="s2">&quot;script_trigger&quot;</span><span class="p">:</span> <span class="mi">58</span><span class="p">,</span>
+    <span class="s2">&quot;marker_event&quot;</span><span class="p">:</span> <span class="mi">59</span><span class="p">,</span>
+    <span class="s2">&quot;onboard_reference_clock&quot;</span><span class="p">:</span> <span class="mi">60</span><span class="p">,</span>
+    <span class="s2">&quot;advance_trigger&quot;</span><span class="p">:</span> <span class="mi">61</span><span class="p">,</span>
+    <span class="s2">&quot;stop_trigger&quot;</span><span class="p">:</span> <span class="mi">82</span>
+<span class="p">}</span>
+
+<span class="n">OUTPUT_TERMINAL</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;PFI0&quot;</span><span class="p">,</span> <span class="s2">&quot;PFI1&quot;</span><span class="p">,</span> <span class="s2">&quot;PFI2&quot;</span><span class="p">,</span> <span class="s2">&quot;PFI3&quot;</span><span class="p">,</span> <span class="c1"># PFI connectors</span>
+    <span class="s2">&quot;PXI_Trig0&quot;</span><span class="p">,</span> <span class="s2">&quot;PXI_Trig1&quot;</span><span class="p">,</span> <span class="s2">&quot;PXI_Trig2&quot;</span><span class="p">,</span> <span class="s2">&quot;PXI_Trig3&quot;</span><span class="p">,</span> <span class="c1"># the PXI trigger backplane</span>
+    <span class="s2">&quot;PXI_Trig4&quot;</span><span class="p">,</span> <span class="s2">&quot;PXI_Trig5&quot;</span><span class="p">,</span> <span class="s2">&quot;PXI_Trig6&quot;</span><span class="p">,</span> <span class="c1"># the PXI trigger backplane</span>
+    <span class="s2">&quot;PXI_Trig7&quot;</span><span class="p">,</span> <span class="s2">&quot;RTSI0&quot;</span><span class="p">,</span> <span class="s2">&quot;RTSI1&quot;</span><span class="p">,</span> <span class="s2">&quot;RTSI2&quot;</span><span class="p">,</span> <span class="c1"># the RTSI trigger bus</span>
+    <span class="s2">&quot;RTSI3&quot;</span><span class="p">,</span> <span class="s2">&quot;RTSI4&quot;</span><span class="p">,</span> <span class="s2">&quot;RTSI5&quot;</span><span class="p">,</span> <span class="s2">&quot;RTSI6&quot;</span><span class="p">,</span> <span class="c1"># the RTSI trigger bus</span>
+    <span class="s2">&quot;RTSI7&quot;</span><span class="p">,</span> <span class="c1"># designated for the Onboard Reference Clock</span>
+    <span class="s2">&quot;ClkOut&quot;</span><span class="p">,</span> <span class="c1"># CLK OUT connector on the front panel</span>
+    <span class="s2">&quot;DDC_ClkOut&quot;</span><span class="p">,</span> <span class="c1"># DDC CLK OUT terminal in the DDC connector</span>
+    <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">VI_NULL</span> <span class="c1"># the signal is not exported</span>
+<span class="p">]</span>
+
+<span class="n">DATA_POSITION</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;sample_clock_rising_edge&#39;</span><span class="p">:</span> <span class="mi">18</span><span class="p">,</span>
+    <span class="s1">&#39;sample_clock_falling_edge&#39;</span><span class="p">:</span> <span class="mi">19</span><span class="p">,</span>
+    <span class="s1">&#39;delay_from_sample_clock_rising_edge&#39;</span><span class="p">:</span> <span class="mi">20</span>
+<span class="p">}</span>
+
+<span class="n">DATA_LAYOUT</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;group_by_sample&#39;</span><span class="p">:</span> <span class="mi">71</span><span class="p">,</span>
+    <span class="s1">&#39;group_by_channel&#39;</span><span class="p">:</span> <span class="mi">72</span>
+<span class="p">}</span>
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO">[docs]</a>
+<span class="k">class</span> <span class="nc">NationalInstruments_HSDIO</span><span class="p">(</span><span class="n">Instrument</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This is the QCoDeS driver for National Instruments HSDIO</span>
+<span class="sd">    devices based on the NI-HSDIO driver. As of NI-HSDIO version 21.5, the</span>
+<span class="sd">    supported devices are</span>
+<span class="sd">    PXI/PCI-6541, PXI/PCI-6542, PXIe-6544, PXIe-6545,</span>
+<span class="sd">    PXIe-6547, PXIe-6548, PXI/PCI-6551, PXI/PCI-6552,</span>
+<span class="sd">    PXIe-6555, PXIe-6556, PXI/PCI-6561, PXI/PCI-6562</span>
+
+<span class="sd">    Documentation for the NI-HSDIO C API can be found by default in the</span>
+<span class="sd">    folder C:\Users\Public\Documents\National Instruments\NI-HSDIO\Documentation</span>
+
+<span class="sd">    Only very basic functionality is implemented.</span>
+
+<span class="sd">    Tested with</span>
+
+<span class="sd">    - PCI-6541</span>
+<span class="sd">    - PXI-6542</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name: Name for this instrument</span>
+<span class="sd">        resource: Identifier for this instrument in NI MAX.</span>
+<span class="sd">        dll_path: path to the NI-HSDIO library DLL. If not provided, use the</span>
+<span class="sd">            default location,</span>
+<span class="sd">            ``C:\Program Files\IVI Foundation\IVI\bin\NiHSDIO_64.dll``.</span>
+<span class="sd">        id_query: whether to perform an ID query on initialization</span>
+<span class="sd">        reset_device: whether to reset the device on initialization</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># default DLL location</span>
+    <span class="n">dll_path</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;C:\Program Files\IVI Foundation\IVI\bin\niHSDIO_64.dll&quot;</span>
+    <span class="c1"># C:\Program Files (x86)\IVI Foundation\IVI\bin\niHSDIO.dll for 32-bit</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">resource</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">dll_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">session_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;Generation&#39;</span><span class="p">,</span>
+                 <span class="n">id_query</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">reset_device</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">session_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Generation&#39;</span><span class="p">,</span> <span class="s1">&#39;Acquisition&#39;</span><span class="p">],</span> <span class="s1">&#39;NIHSDIO session must be either Generation or Acquisition&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_session_type</span> <span class="o">=</span> <span class="n">session_type</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">resource</span> <span class="o">=</span> <span class="n">resource</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span> <span class="o">=</span> <span class="n">NIHSDIODLLWrapper</span><span class="p">(</span><span class="n">dll_path</span><span class="o">=</span><span class="n">dll_path</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">dll_path</span><span class="p">,</span> <span class="n">session_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_session_type</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_handle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">id_query</span><span class="o">=</span><span class="n">id_query</span><span class="p">,</span>
+                                 <span class="n">reset_device</span><span class="o">=</span><span class="n">reset_device</span><span class="p">)</span>
+
+        <span class="c1"># Wrap DLL calls</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">Initiate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;Initiate&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">)]</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">Abort</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;Abort&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">)])</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">AssignDynamicChannels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;AssignDynamicChannels&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;channelList&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">)])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">AssignStaticChannels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;AssignStaticChannels&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;channelList&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">)])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">WaitUntilDone</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;WaitUntilDone&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;maxTimeMilliseconds&quot;</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">)])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">ExportSignal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;ExportSignal&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;signal&quot;</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;signalIdentifier&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;outputTerminal&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">)])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">DataPosition</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;ConfigureDataPosition&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;channelList&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;position&quot;</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">)])</span>
+
+        <span class="c1"># wrap the ConfigureVoltage function family</span>
+        <span class="n">volt_chan</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Data&#39;</span><span class="p">,</span> <span class="s1">&#39;Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;Event&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">chan</span> <span class="ow">in</span> <span class="n">volt_chan</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Configure</span><span class="si">{</span><span class="n">chan</span><span class="si">}</span><span class="s1">VoltageLogicFamily&#39;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                        <span class="n">name_in_library</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Configure</span><span class="si">{</span><span class="n">chan</span><span class="si">}</span><span class="s1">VoltageLogicFamily&#39;</span><span class="p">,</span>
+                        <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                                  <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;channelList&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">),</span>
+                                  <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;logicFamily&quot;</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">)]))</span>
+
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Configure</span><span class="si">{</span><span class="n">chan</span><span class="si">}</span><span class="s1">VoltageCustomLevels&#39;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                        <span class="n">name_in_library</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Configure</span><span class="si">{</span><span class="n">chan</span><span class="si">}</span><span class="s1">VoltageCustomLevels&#39;</span><span class="p">,</span>
+                        <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                                  <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;channelList&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">),</span>
+                                  <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;lowLevel&quot;</span><span class="p">,</span> <span class="n">ViReal64</span><span class="p">),</span>
+                                  <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;highLevel&quot;</span><span class="p">,</span> <span class="n">ViReal64</span><span class="p">)]))</span>
+
+        <span class="c1"># wrap the WriteNamedWaveform function family</span>
+        <span class="n">numeric_format</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;U32&#39;</span><span class="p">,</span> <span class="s1">&#39;U16&#39;</span><span class="p">,</span> <span class="s1">&#39;U8&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="nb">format</span> <span class="ow">in</span> <span class="n">numeric_format</span><span class="p">:</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;WriteNamedWaveform</span><span class="si">{</span><span class="nb">format</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                        <span class="n">name_in_library</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;WriteNamedWaveform</span><span class="si">{</span><span class="nb">format</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span>
+                        <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                                  <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;waveformName&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">),</span>
+                                  <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;samplesToWrite&quot;</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">),]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">WriteNamedWaveformFromFileHWS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;WriteNamedWaveformFromFileHWS&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;waveformName&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;filePath&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;useRateFromWaveform&quot;</span><span class="p">,</span> <span class="n">ViBoolean</span><span class="p">),])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">WriteNamedWaveformWDT</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>  <span class="c1"># type: ignore[attr-defined]</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;WriteNamedWaveformWDT&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;vi&quot;</span><span class="p">,</span> <span class="n">ViSession</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;waveformName&quot;</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;samplesToWrite&quot;</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">),</span>
+                          <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;dataLayout&quot;</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">),])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;dynamic_channels&#39;</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Dynamic Channels&#39;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_DYNAMIC_CHANNELS</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_assign_dynamic_channels</span>
+                          <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;static_channels&#39;</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Static Channels&#39;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_STATIC_CHANNELS</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_assign_static_channels</span>
+                          <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;ref_clock_source&quot;</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reference clock source&quot;</span><span class="p">,</span>
+                           <span class="n">docstring</span><span class="o">=</span><span class="s2">&quot;Specify the reference clock source for &quot;</span>
+                           <span class="s2">&quot;the device. See the ``vals`` attribute for valid &quot;</span>
+                           <span class="s2">&quot;values.&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_REF_CLOCK_SOURCE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_REF_CLOCK_SOURCE</span><span class="p">),</span>
+                           <span class="n">val_mapping</span><span class="o">=</span><span class="n">REF_CLK_SRC_MAP</span><span class="p">,</span>
+                           <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;ref_clock_rate&quot;</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reference clock rate&quot;</span><span class="p">,</span>
+                           <span class="n">docstring</span><span class="o">=</span><span class="s2">&quot;Specify the reference clock rate for &quot;</span>
+                           <span class="s2">&quot;the device. See the ``vals`` attribute for valid &quot;</span>
+                           <span class="s2">&quot;values.&quot;</span><span class="p">,</span>
+                           <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;Hz&#39;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_REF_CLOCK_RATE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_REF_CLOCK_RATE</span><span class="p">),</span>
+                           <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;sample_clock_source&quot;</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Sample clock source&quot;</span><span class="p">,</span>
+                           <span class="n">docstring</span><span class="o">=</span><span class="s2">&quot;Specify the sample clock source for &quot;</span>
+                           <span class="s2">&quot;the device. See the ``vals`` attribute for valid &quot;</span>
+                           <span class="s2">&quot;values.&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_SOURCE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_SOURCE</span><span class="p">),</span>
+                           <span class="n">val_mapping</span><span class="o">=</span><span class="n">SAMPLE_CLK_SRC_MAP</span><span class="p">,</span>
+                           <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;sample_clock_rate&quot;</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Reference clock rate&quot;</span><span class="p">,</span>
+                           <span class="n">docstring</span><span class="o">=</span><span class="s2">&quot;Specify the sample clock rate for &quot;</span>
+                           <span class="s2">&quot;the device. See the ``vals`` attribute for valid &quot;</span>
+                           <span class="s2">&quot;values.&quot;</span><span class="p">,</span>
+                           <span class="n">unit</span><span class="o">=</span><span class="s1">&#39;Hz&#39;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_RATE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_RATE</span><span class="p">),</span>
+                           <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;repeat_mode&quot;</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Repeat mode&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_REPEAT_MODE</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_REPEAT_MODE</span><span class="p">),</span>
+                           <span class="n">val_mapping</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;finite&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+                                        <span class="s1">&#39;continuous&#39;</span><span class="p">:</span> <span class="mi">17</span><span class="p">},</span>
+                           <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_parameter</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;repeat_count&quot;</span><span class="p">,</span>
+                           <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Repeat count&quot;</span><span class="p">,</span>
+                           <span class="n">get_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_REPEAT_COUNT</span><span class="p">),</span>
+                           <span class="n">set_cmd</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">,</span>
+                                           <span class="n">NIHSDIO_ATTR_REPEAT_COUNT</span><span class="p">),</span>
+                           <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">connect_message</span><span class="p">()</span>
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.initiate">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.initiate">[docs]</a>
+    <span class="k">def</span> <span class="nf">initiate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initiate generation/acquisition. This causes the NI-HSDIO device to leave</span>
+<span class="sd">        the Configuration state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">Initiate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.abort">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.abort">[docs]</a>
+    <span class="k">def</span> <span class="nf">abort</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Stop generation/acquisition and return to the Configuration state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">Abort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.reset_device">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.reset_device">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset_device</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reset the device to its Initial state and reload its FPGA.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">reset_device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.init">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.init">[docs]</a>
+    <span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_query</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="n">reset_device</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ViSession</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Call the wrapped init function from the library</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            id_query: whether to perform an ID query</span>
+<span class="sd">            reset_device: whether to reset the device</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            the ViSession handle of the initialized device</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resource</span><span class="p">,</span> <span class="n">id_query</span><span class="o">=</span><span class="n">id_query</span><span class="p">,</span>
+                                 <span class="n">reset_device</span><span class="o">=</span><span class="n">reset_device</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.configure_export_signal">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.configure_export_signal">[docs]</a>
+    <span class="k">def</span> <span class="nf">configure_export_signal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_terminal</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">signal_identifier</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Call the wrapped ExportSignal function from the library</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            signal (str): Signal (clock, trigger, or event) to export.</span>
+<span class="sd">            outputTerminal (str): Output terminal where the signal is exported.</span>
+<span class="sd">            signalIdentifier (str, optional): Describes the signal being exported.</span>
+<span class="sd">                                              Defaults to &#39;&#39;.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">signal</span> <span class="ow">in</span> <span class="n">SIGNAL</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s2">&quot;Unsupported output signal.&quot;</span>
+        <span class="k">assert</span> <span class="n">output_terminal</span> <span class="ow">in</span> <span class="n">OUTPUT_TERMINAL</span><span class="p">,</span> <span class="s2">&quot;Unsupported output terminal.&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">ExportSignal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">(</span><span class="n">SIGNAL</span><span class="p">[</span><span class="n">signal</span><span class="p">]),</span>
+                                  <span class="n">c_str</span><span class="p">(</span><span class="n">signal_identifier</span><span class="p">),</span><span class="n">c_str</span><span class="p">(</span><span class="n">output_terminal</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.configure_voltage">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.configure_voltage">[docs]</a>
+    <span class="k">def</span> <span class="nf">configure_voltage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;Data&#39;</span><span class="p">,</span> <span class="s1">&#39;Trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;Event&#39;</span><span class="p">],</span>
+                          <span class="nb">type</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;LogicFamily&#39;</span><span class="p">,</span> <span class="s1">&#39;CustomLevels&#39;</span><span class="p">],</span>
+                          <span class="n">channel_list</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">logic_family</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">&#39;5.0V&#39;</span><span class="p">,</span>
+                          <span class="n">low_level</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high_level</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Call the wrapped ConfigureVoltage function family from the library</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            channel ({&#39;Data&#39;, &#39;Trigger&#39;, &#39;Event&#39;}): Channel to configure.</span>
+<span class="sd">            type ({&#39;LogicFamily&#39;, &#39;CustomLevels&#39;}): Configuration type.</span>
+<span class="sd">            channel_list (str, optional): Digital channels to configure. Defaults to &#39;&#39;.</span>
+<span class="sd">            logic_family (str, optional): The logic family for the data voltage levels. Defaults to &#39;5.0V&#39;.</span>
+<span class="sd">            low_level (float, optional): Voltage that identifies low level. Only required when type is &#39;CustomLevels&#39;. Defaults to 0.</span>
+<span class="sd">            high_level (float, optional): Voltage that identifies low level. Only required when type is &#39;CustomLevels&#39;. Defaults to 5.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="s1">&#39;LogicFamily&#39;</span><span class="p">:</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Configure</span><span class="si">{</span><span class="n">channel</span><span class="si">}</span><span class="s1">VoltageLogicFamily&#39;</span><span class="p">)</span>
+            <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">channel_list</span><span class="p">)),</span> <span class="n">ViInt32</span><span class="p">(</span><span class="n">LOGIC_FAMILY</span><span class="p">[</span><span class="n">logic_family</span><span class="p">]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Configure</span><span class="si">{</span><span class="n">channel</span><span class="si">}</span><span class="s1">VoltageCustomLevels&#39;</span><span class="p">)</span>
+            <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">channel_list</span><span class="p">)),</span> <span class="n">ViReal64</span><span class="p">(</span><span class="n">low_level</span><span class="p">),</span> <span class="n">ViReal64</span><span class="p">(</span><span class="n">high_level</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.write_named_waveform_WDT">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.write_named_waveform_WDT">[docs]</a>
+    <span class="k">def</span> <span class="nf">write_named_waveform_WDT</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">num_of_channels</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">waveform</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">data_layout</span><span class="o">=</span><span class="s1">&#39;group_by_channel&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Call the wrapped WriteNamedWaveformWDT function from the library</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name (str): The name to associate with the allocated waveform memory.</span>
+<span class="sd">            num_of_channels (int): Number of output channels.</span>
+<span class="sd">            waveform (list): The digital waveform data. The list has a shape of (number of channels)*(number of samples)</span>
+<span class="sd">            data_layout ({&#39;group_by_channel&#39;, &#39;group_by_sample&#39;}): The layout of the waveform contained in waveform.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">data_layout</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DATA_LAYOUT</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;data_layout must be either &#39;group_by_sample&#39; or &#39;group_by_channel&#39;!&quot;</span><span class="p">)</span>
+        
+        <span class="n">waveform_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">waveform</span><span class="p">)</span>
+        <span class="n">waveform_length_per_channel</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">waveform_length</span><span class="o">/</span><span class="n">num_of_channels</span><span class="p">)</span>
+
+        <span class="c1"># expand the waveform list by inserting 0&#39;s in front of actual values</span>
+        <span class="c1"># expanded_waveform = [0]*(waveform_length*num_of_channels)</span>
+        <span class="c1"># for i in range(waveform_length):</span>
+        <span class="c1">#     expanded_waveform[int(num_of_channels*(i+1)-1)] = waveform[i]</span>
+
+        <span class="c1"># waveform = (ctypes.c_uint8*(waveform_length*num_of_channels))(*expanded_waveform)</span>
+        <span class="n">waveform</span> <span class="o">=</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">c_uint8</span><span class="o">*</span><span class="p">(</span><span class="n">waveform_length</span><span class="p">))(</span><span class="o">*</span><span class="n">waveform</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">WriteNamedWaveformWDT</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span>
+                                           <span class="n">ViConstString</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">name</span><span class="p">)),</span>
+                                           <span class="n">ViInt32</span><span class="p">(</span><span class="n">waveform_length_per_channel</span><span class="p">),</span>
+                                           <span class="n">ViInt32</span><span class="p">(</span><span class="n">DATA_LAYOUT</span><span class="p">[</span><span class="n">data_layout</span><span class="p">]),</span>
+                                           <span class="n">byref</span><span class="p">(</span><span class="n">waveform</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.configure_data_position">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.configure_data_position">[docs]</a>
+    <span class="k">def</span> <span class="nf">configure_data_position</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">channel_list</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">position</span> <span class="ow">in</span> <span class="n">DATA_POSITION</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="s1">&#39;Unsupported data position&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">DataPosition</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span> <span class="n">ViConstString</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">channel_list</span><span class="p">)),</span>
+                                  <span class="n">ViInt32</span><span class="p">(</span><span class="n">DATA_POSITION</span><span class="p">[</span><span class="n">position</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.wait_until_done">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.wait_until_done">[docs]</a>
+    <span class="k">def</span> <span class="nf">wait_until_done</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_time_milliseconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">WaitUntilDone</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span> <span class="n">ViInt32</span><span class="p">(</span><span class="n">max_time_milliseconds</span><span class="p">))</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_assign_dynamic_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channelList</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">AssignDynamicChannels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span> <span class="n">c_str</span><span class="p">(</span><span class="n">channelList</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_assign_static_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channelList</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">AssignStaticChannels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span> <span class="n">c_str</span><span class="p">(</span><span class="n">channelList</span><span class="p">))</span>
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.reset">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.reset">[docs]</a>
+    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.get_attribute">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.get_attribute">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="n">AttributeWrapper</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span> <span class="n">attr</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.set_attribute">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.set_attribute">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="n">AttributeWrapper</span><span class="p">,</span> <span class="n">set_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">set_attribute</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">set_value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.close">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.close">[docs]</a>
+    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_handle&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wrapper</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_handle</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">session_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_session_type</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">clock_configurations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;Reference clock source&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="n">NIHSDIO_ATTR_REF_CLOCK_SOURCE</span><span class="p">),</span>
+                <span class="s1">&#39;Reference clock rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="n">NIHSDIO_ATTR_REF_CLOCK_RATE</span><span class="p">),</span>
+                <span class="s1">&#39;Reference clock impedance&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="n">NIHSDIO_ATTR_REF_CLOCK_IMPEDANCE</span><span class="p">),</span>
+                <span class="s1">&#39;Sample clock source&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_SOURCE</span><span class="p">),</span>
+                <span class="s1">&#39;Sample clock rate&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_RATE</span><span class="p">),</span>
+                <span class="s1">&#39;Sample clock impedance&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="n">NIHSDIO_ATTR_SAMPLE_CLOCK_IMPEDANCE</span><span class="p">)}</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">serial</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="n">NIHSDIO_ATTR_SERIAL_NUMBER</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_width</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_attribute</span><span class="p">(</span><span class="n">NIHSDIO_ATTR_DATA_WIDTH</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NationalInstruments_HSDIO.get_idn">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.NationalInstruments.html#qcodes_contrib_drivers.drivers.NationalInstruments.HSDIO.NationalInstruments_HSDIO.get_idn">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_idn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;vendor&quot;</span><span class="p">:</span> <span class="s1">&#39;National Instruments&#39;</span><span class="p">,</span>
+                <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s1">&#39;HSDIO&#39;</span><span class="p">,</span>
+                <span class="s2">&quot;serial&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">serial</span>
+        <span class="p">}</span></div>
+</div>
+
+
+<span class="c1"># shorthand alias for the above</span>
+<span class="n">NI_HSDIO</span> <span class="o">=</span> <span class="n">NationalInstruments_HSDIO</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, QCoDeS Users.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

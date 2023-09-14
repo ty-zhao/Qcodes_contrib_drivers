@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper &mdash; qcodes_contrib_drivers 0.14.0.dev508+main.g5677223 documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/documentation_options.js?v=f47d49fe"></script>
+        <script src="../../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            qcodes_contrib_drivers
+          </a>
+              <div class="version">
+                0.14.0.dev508+main.g5677223
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../examples/index.html">Examples of how to use drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/generated/qcodes_contrib_drivers.drivers.html">qcodes_contrib_drivers.drivers package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">qcodes_contrib_drivers</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.ctypeslib</span> <span class="k">as</span> <span class="nn">npct</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="n">cdll</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">NamedTuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="n">create_string_buffer</span><span class="p">,</span> <span class="n">c_uint64</span><span class="p">,</span> <span class="n">c_uint8</span><span class="p">,</span> <span class="n">c_int</span><span class="p">,</span> <span class="n">c_int16</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">,</span> <span class="n">c_uint</span><span class="p">,</span> <span class="n">c_char</span><span class="p">,</span> <span class="n">c_float</span><span class="p">,</span> <span class="n">c_uint32</span><span class="p">,</span> <span class="n">byref</span><span class="p">,</span> <span class="n">c_double</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="n">APS2_STATUS</span> <span class="o">=</span> <span class="n">c_int</span>
+
+<div class="viewcode-block" id="c_str">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper.c_str">[docs]</a>
+<span class="k">def</span> <span class="nf">c_str</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span> <span class="k">return</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s2">&quot;ascii&quot;</span><span class="p">)</span></div>
+
+
+<span class="n">status_dict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;APS2_OK&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;APS2_UNKNOWN_ERROR&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;APS2_NO_DEVICE_FOUND&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;APS2_UNCONNECTED&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">4</span><span class="p">:</span> <span class="s2">&quot;APS2_RESET_TIMEOUT&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">5</span><span class="p">:</span> <span class="s2">&quot;APS2_FILELOG_ERROR&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">6</span><span class="p">:</span> <span class="s2">&quot;APS2_SEQFILE_FAIL&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">7</span><span class="p">:</span> <span class="s2">&quot;APS2_PLL_LOST_LOCK&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">8</span><span class="p">:</span> <span class="s2">&quot;APS2_MMCM_LOST_LOCK&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">9</span><span class="p">:</span> <span class="s2">&quot;APS2_UNKNOWN_RUN_MODE&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">10</span><span class="p">:</span> <span class="s2">&quot;APS2_FAILED_TO_CONNECT&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">11</span><span class="p">:</span> <span class="s2">&quot;APS2_INVALID_DAC&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">12</span><span class="p">:</span> <span class="s2">&quot;APS2_NO_SUCH_BITFILE&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">13</span><span class="p">:</span> <span class="s2">&quot;APS2_MAC_ADDR_VALIDATION_FAILURE&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">14</span><span class="p">:</span> <span class="s2">&quot;APS2_IP_ADDR_VALIDATION_FAILURE&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">15</span><span class="p">:</span> <span class="s2">&quot;APS2_DHCP_VALIDATION_FAILURE&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">16</span><span class="p">:</span> <span class="s2">&quot;APS2_RECEIVE_TIMEOUT&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">17</span><span class="p">:</span> <span class="s2">&quot;APS2_SOCKET_FAILURE&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">18</span><span class="p">:</span> <span class="s2">&quot;APS2_INVALID_IP_ADDR&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">19</span><span class="p">:</span> <span class="s2">&quot;APS2_COMMS_ERROR&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">20</span><span class="p">:</span> <span class="s2">&quot;APS2_UNALIGNED_MEMORY_ACCESS&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">21</span><span class="p">:</span> <span class="s2">&quot;APS2_ERPOM_ERASE_FAILURE&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">22</span><span class="p">:</span> <span class="s2">&quot;APS2_BITFILE_VALIDATION_FAILURE&quot;</span><span class="p">,</span>
+    <span class="o">-</span><span class="mi">23</span><span class="p">:</span> <span class="s2">&quot;APS2_BAD_PLL_VALUE&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">reset_dict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;RECONFIG_EPROM_USER&quot;</span><span class="p">,</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;RECONFIG_EPROM_BASE&quot;</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;RESET_TCP&quot;</span>
+<span class="p">}</span>
+
+<div class="viewcode-block" id="NamedArgType">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper.NamedArgType">[docs]</a>
+<span class="k">class</span> <span class="nc">NamedArgType</span><span class="p">(</span><span class="n">NamedTuple</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Struct for associating a name with an argument type for DLL function</span>
+<span class="sd">    signatures.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">argtype</span><span class="p">:</span> <span class="n">Any</span></div>
+
+
+<div class="viewcode-block" id="AttributeWrapper">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper.AttributeWrapper">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span> <span class="nc">AttributeWrapper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Struct to associate a data type to a numeric constant.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">Any</span></div>
+
+
+<div class="viewcode-block" id="APS2DLLWrapper">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper.APS2DLLWrapper">[docs]</a>
+<span class="k">class</span> <span class="nc">APS2DLLWrapper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dll_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dll</span> <span class="o">=</span> <span class="n">cdll</span><span class="o">.</span><span class="n">LoadLibrary</span><span class="p">(</span><span class="n">dll_path</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dtype_map</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">c_float</span><span class="p">:</span> <span class="s2">&quot;c_float&quot;</span><span class="p">,</span>
+                <span class="n">c_int</span><span class="p">:</span> <span class="s2">&quot;c_int&quot;</span><span class="p">,</span>
+                <span class="n">c_uint</span><span class="p">:</span> <span class="s2">&quot;c_uint&quot;</span><span class="p">,</span>
+                <span class="n">c_double</span><span class="p">:</span> <span class="s2">&quot;c_double&quot;</span>
+        <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_error_message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function</span><span class="p">(</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;get_error_msg&quot;</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;statusCode&quot;</span><span class="p">,</span> <span class="n">APS2_STATUS</span><span class="p">)]</span>
+                <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_device_IPs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;get_device_IPs&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_char_p</span><span class="p">))]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_num_devices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;get_numDevices&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;numDevices&quot;</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_uint</span><span class="p">))]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_firmware_version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;get_firmware_version&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="n">c_uint32</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;git_sha1&quot;</span><span class="p">,</span> <span class="n">c_uint32</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;build_timestamp&quot;</span><span class="p">,</span> <span class="n">c_uint32</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;version_string&quot;</span><span class="p">,</span> <span class="n">c_char</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_connect_APS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;connect_APS&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_disconnect_APS</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;disconnect_APS&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;reset&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;resetMode&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;init_APS&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;force&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_mixer_correction_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;set_mixer_correction_matrix&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;matrix&quot;</span><span class="p">,</span><span class="n">npct</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                                                           <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                           <span class="n">flags</span><span class="o">=</span><span class="s1">&#39;C_CONTIGUOUS&#39;</span><span class="p">))]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_get_mixer_correction_matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;get_mixer_correction_matrix&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;matrix&quot;</span><span class="p">,</span> <span class="n">npct</span><span class="o">.</span><span class="n">ndpointer</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                                                            <span class="n">ndim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                            <span class="n">flags</span><span class="o">=</span><span class="s1">&#39;C_CONTIGUOUS&#39;</span><span class="p">))]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trigger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;trigger&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_waveform_float</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;set_waveform_float&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;channel&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_float</span><span class="p">)),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;numPts&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_waveform_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;set_waveform_int&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;channel&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_int16</span><span class="p">)),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;numPts&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_markers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;set_markers&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;channel&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_uint8</span><span class="p">)),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;numPts&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_write_sequence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;write_sequence&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_uint64</span><span class="p">)),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;numWords&quot;</span><span class="p">,</span> <span class="n">c_uint32</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_run_mode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;set_run_mode&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;mode&quot;</span><span class="p">,</span> <span class="n">c_int</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_sequence_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;load_sequence_file&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),</span>
+                      <span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;seqFile&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_clear_channel_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;clear_channel_data&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;run&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="s2">&quot;stop&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">)]</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="APS2DLLWrapper.wrap_dll_function">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper.APS2DLLWrapper.wrap_dll_function">[docs]</a>
+    <span class="k">def</span> <span class="nf">wrap_dll_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name_in_library</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                          <span class="n">argtypes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">],</span>
+                          <span class="n">restype</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="n">APS2_STATUS</span><span class="p">,</span>
+                          <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience method for wrapping a function in libaps2 API.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name_in_library: The name of the function in the library</span>
+<span class="sd">            argtypes: list of ``NamedArgType`` tuples containing the names and</span>
+<span class="sd">                types of the arguments of the function to be wrapped.</span>
+<span class="sd">            restype: The return type of the library function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dll</span><span class="p">,</span> <span class="n">name_in_library</span><span class="p">)</span>
+        <span class="n">func</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="n">restype</span>
+        <span class="n">func</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">argtype</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">argtypes</span><span class="p">]</span>
+        <span class="n">func</span><span class="o">.</span><span class="n">argnames</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">argtypes</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">func</span></div>
+
+
+<div class="viewcode-block" id="APS2DLLWrapper.error_message">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper.APS2DLLWrapper.error_message">[docs]</a>
+    <span class="k">def</span> <span class="nf">error_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error_code</span><span class="p">:</span> <span class="n">APS2_STATUS</span> <span class="o">=</span> <span class="n">APS2_STATUS</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convenience wrapper around get_error_message (which is wrapped as</span>
+<span class="sd">        self._error_message).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_error_message</span><span class="p">(</span><span class="n">error_code</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">status_dict</span><span class="p">[</span><span class="n">code</span><span class="p">]</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_check_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error_code</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        If the error code is nonzero, convert it to a string using</span>
+<span class="sd">        ``self.error_message`` and raise an exception or issue a warning as</span>
+<span class="sd">        appropriate. ``self.error_message`` must be initialized with</span>
+<span class="sd">        ``wrap_dll_function`` before this method can be used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">error_code</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_message</span><span class="p">(</span><span class="n">error_code</span><span class="o">=</span><span class="n">APS2_STATUS</span><span class="p">(</span><span class="n">error_code</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">error_code</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># negative error codes are errors</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">status_dict</span><span class="p">[</span><span class="n">error_code</span><span class="p">]</span><span class="si">}</span><span class="s2">) </span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">status_dict</span><span class="p">[</span><span class="n">error_code</span><span class="p">]</span><span class="si">}</span><span class="s2">) </span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="ne">RuntimeWarning</span><span class="p">,</span>
+                              <span class="n">stacklevel</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+<div class="viewcode-block" id="APS2DLLWrapper.wrap_dll_function_checked">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper.APS2DLLWrapper.wrap_dll_function_checked">[docs]</a>
+    <span class="k">def</span> <span class="nf">wrap_dll_function_checked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name_in_library</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                  <span class="n">argtypes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Same as ``wrap_dll_function``, but check the return value and convert</span>
+<span class="sd">        it to a Python exception or warning if it is nonzero using</span>
+<span class="sd">        ``self._check_error``. The arguments are the same as for</span>
+<span class="sd">        ``wrap_dll_function``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function</span><span class="p">(</span>
+                <span class="n">name_in_library</span><span class="o">=</span><span class="n">name_in_library</span><span class="p">,</span>
+                <span class="n">argtypes</span><span class="o">=</span><span class="n">argtypes</span><span class="p">,</span>
+                <span class="n">restype</span><span class="o">=</span><span class="n">c_int</span><span class="p">,</span>
+                <span class="p">)</span>
+
+        <span class="c1"># see https://docs.python.org/3/library/ctypes.html#return-types</span>
+        <span class="n">func</span><span class="o">.</span><span class="n">restype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_error</span>
+
+        <span class="k">return</span> <span class="n">func</span></div>
+
+
+<div class="viewcode-block" id="APS2DLLWrapper.get_attribute">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper.APS2DLLWrapper.get_attribute">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="n">AttributeWrapper</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get an attribute with data type &quot;DataType&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="n">func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wrap_dll_function_checked</span><span class="p">(</span>
+            <span class="n">name_in_library</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;get_</span><span class="si">{</span><span class="n">attr</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">argtypes</span><span class="o">=</span><span class="p">[</span><span class="n">NamedArgType</span><span class="p">(</span><span class="s2">&quot;deviceIP&quot;</span><span class="p">,</span> <span class="n">c_char_p</span><span class="p">),]</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">c_char_p</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">create_string_buffer</span><span class="p">(</span><span class="mi">64</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">channel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span> <span class="n">byref</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span> <span class="n">c_int</span><span class="p">(</span><span class="n">channel</span><span class="p">),</span> <span class="n">byref</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">decode</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">dtype</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">channel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span> <span class="n">byref</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span> <span class="n">c_int</span><span class="p">(</span><span class="n">channel</span><span class="p">),</span> <span class="n">byref</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="APS2DLLWrapper.set_attribute">
+<a class="viewcode-back" href="../../../../api/generated/qcodes_contrib_drivers.drivers.RaytheonBBN.html#qcodes_contrib_drivers.drivers.RaytheonBBN.dll_wrapper.APS2DLLWrapper.set_attribute">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_attribute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">address</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">attr</span><span class="p">:</span> <span class="n">AttributeWrapper</span><span class="p">,</span> <span class="n">set_value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set an attribute with data type &quot;DataType&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">attr</span><span class="o">.</span><span class="n">dtype</span>
+
+        <span class="n">func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dll</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;set_</span><span class="si">{</span><span class="n">attr</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="n">c_char_p</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">channel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span> <span class="n">c_str</span><span class="p">(</span><span class="n">set_value</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span> <span class="n">c_int</span><span class="p">(</span><span class="n">channel</span><span class="p">),</span> <span class="n">c_str</span><span class="p">(</span><span class="n">set_value</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">channel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span> <span class="n">dtype</span><span class="p">(</span><span class="n">set_value</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">func</span><span class="p">(</span><span class="n">c_str</span><span class="p">(</span><span class="n">address</span><span class="p">),</span> <span class="n">c_int</span><span class="p">(</span><span class="n">channel</span><span class="p">),</span> <span class="n">dtype</span><span class="p">(</span><span class="n">set_value</span><span class="p">))</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019, QCoDeS Users.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
